@@ -7,21 +7,21 @@ def clear():
 
 clear()
 print("[AutoVencordPatch Installer]")
-version = input("Enter the type of Discord to be automatically patched (stable, ptb, canary): ")
-if version not in ["stable", "ptb", "canary"]:
+branch = input("Enter the branch of Discord to be automatically patched (stable, ptb, canary): ")
+if branch not in ["stable", "ptb", "canary"]:
     input("This version of Discord doesn't exist. ")
     exit()
 
 clear()
 print("[Installing AutoVencordPatch]")
 print("Preparing install environment...", end=" ", flush=True)
-os.system(f"cp ./versions/installer/{version}.go ./installer/cli.go")
-os.system(f"cp ./versions/autovencordpatch/{version}.go ./autovencordpatch/autovencordpatch.go")
+os.system(f"cp ./branches/{branch}/cli.go ./installer/cli.go")
+os.system(f"cp ./branches/{branch}/autovencordpatch.go ./autovencordpatch/autovencordpatch.go")
 print("done")
 
 def run_sh(sh):
     for cmd in sh.split("\n"):
-        os.system(f"{cmd}") #> /dev/null 2>&1")
+        os.system(f"{cmd}")
 
 os.chdir("./installer/")
 build_vi = """
