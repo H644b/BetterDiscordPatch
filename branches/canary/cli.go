@@ -49,8 +49,6 @@ func main() {
 	var installFlag = flag.Bool("install", true, "Install Vencord")
 	var updateFlag = flag.Bool("repair", false, "Repair Vencord")
 	var uninstallFlag = flag.Bool("uninstall", false, "Uninstall Vencord")
-	var installOpenAsarFlag = flag.Bool("install-openasar", false, "Install OpenAsar")
-	var uninstallOpenAsarFlag = flag.Bool("uninstall-openasar", false, "Uninstall OpenAsar")
 	var locationFlag = flag.String("location", "", "The location of the Discord install to modify")
 	var branchFlag = flag.String("branch", "", "The branch of Discord to modify [auto|stable|ptb|canary]")
 	flag.Parse()
@@ -92,7 +90,7 @@ func main() {
 		}
 	}
 
-	install, uninstall, update, installOpenAsar, uninstallOpenAsar := *installFlag, *uninstallFlag, *updateFlag, *installOpenAsarFlag, *uninstallOpenAsarFlag
+	install, uninstall, update := *installFlag, *uninstallFlag, *updateFlag
 
 	var err error
 	var errSilent error
@@ -106,20 +104,6 @@ func main() {
 		Log.Info("Done!")
 		if err == nil {
 			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
-		}
-	} else if installOpenAsar {
-		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
-		if !discord.IsOpenAsar() {
-			err = discord.InstallOpenAsar()
-		} else {
-			die("OpenAsar already installed")
-		}
-	} else if uninstallOpenAsar {
-		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
-		if discord.IsOpenAsar() {
-			err = discord.UninstallOpenAsar()
-		} else {
-			die("OpenAsar not installed")
 		}
 	}
 

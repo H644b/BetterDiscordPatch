@@ -9,8 +9,11 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
 	"os"
 	"os/exec"
 	"vencordinstaller/buildinfo"
@@ -39,14 +42,22 @@ func main() {
 	// Used by log.go init func
 	flag.Bool("debug", false, "Enable debug info")
 
+	var helpFlag = flag.Bool("help", false, "View usage instructions")
 	var versionFlag = flag.Bool("version", false, "View the program version")
 	var updateSelfFlag = flag.Bool("update-self", false, "Update me to the latest version")
 	var installFlag = flag.Bool("install", true, "Install Vencord")
 	var updateFlag = flag.Bool("repair", false, "Repair Vencord")
 	var uninstallFlag = flag.Bool("uninstall", false, "Uninstall Vencord")
+	var installOpenAsarFlag = flag.Bool("install-openasar", false, "Install OpenAsar")
+	var uninstallOpenAsarFlag = flag.Bool("uninstall-openasar", false, "Uninstall OpenAsar")
 	var locationFlag = flag.String("location", "", "The location of the Discord install to modify")
 	var branchFlag = flag.String("branch", "", "The branch of Discord to modify [auto|stable|ptb|canary]")
 	flag.Parse()
+
+	if *helpFlag {
+		flag.Usage()
+		return
+	}
 
 	if *versionFlag {
 		fmt.Println("Vencord Installer Cli", buildinfo.InstallerTag, "("+buildinfo.InstallerGitHash+")")
@@ -80,7 +91,7 @@ func main() {
 		}
 	}
 
-	install, uninstall, update := *installFlag, *uninstallFlag, *updateFlag
+	install, uninstall, update, installOpenAsar, uninstallOpenAsar := *installFlag, *uninstallFlag, *updateFlag, *installOpenAsarFlag, *uninstallOpenAsarFlag
 
 	var err error
 	var errSilent error
@@ -94,6 +105,20 @@ func main() {
 		Log.Info("Done!")
 		if err == nil {
 			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
+		}
+	} else if installOpenAsar {
+		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
+		if !discord.IsOpenAsar() {
+			err = discord.InstallOpenAsar()
+		} else {
+			die("OpenAsar already installed")
+		}
+	} else if uninstallOpenAsar {
+		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
+		if discord.IsOpenAsar() {
+			err = discord.UninstallOpenAsar()
+		} else {
+			die("OpenAsar not installed")
 		}
 	}
 
@@ -109,12 +134,12 @@ func main() {
 }
 
 func exitSuccess() {
-	Log.Info("✔ Success!")
+	color.HiGreen("✔ Success!")
 	os.Exit(0)
 }
 
 func exitFailure() {
-	Log.Info("❌ Failed!")
+	color.HiRed("❌ Failed!")
 	cmd := exec.Command("osascript", "-e", `display notification "Failed to patch Vencord" with title "VencordInstaller"`)
 	err := cmd.Run()
 	if err != nil {
@@ -123,8 +148,16 @@ func exitFailure() {
 	os.Exit(1)
 }
 
+func handlePromptError(err error) {
+	if errors.Is(err, promptui.ErrInterrupt) {
+		os.Exit(0)
+	}
+
+	Log.FatalIfErr(err)
+}
+
 func PromptDiscord(action, dir, branch string) *DiscordInstall {
-	for _, b := range []string{"stable", "canary", "ptb"} {
+	for _, b := range []string{"ptb"} {
 		for _, discord := range discords {
 			install := discord.(*DiscordInstall)
 			if install.branch == b {
@@ -138,4 +171,11 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 
 func InstallLatestBuilds() error {
 	return installLatestBuilds()
+}
+
+func HandleScuffedInstall() {
+	fmt.Println("Hold On!")
+	fmt.Println("You have a broken Discord Install.")
+	fmt.Println("Please reinstall Discord before proceeding!")
+	fmt.Println("Otherwise, Vencord will likely not work.")
 }

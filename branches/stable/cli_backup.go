@@ -9,11 +9,15 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"vencordinstaller/buildinfo"
+
+	"github.com/fatih/color"
+	"github.com/manifoldco/promptui"
 )
 
 var discords []any
@@ -39,6 +43,7 @@ func main() {
 	// Used by log.go init func
 	flag.Bool("debug", false, "Enable debug info")
 
+	var helpFlag = flag.Bool("help", false, "View usage instructions")
 	var versionFlag = flag.Bool("version", false, "View the program version")
 	var updateSelfFlag = flag.Bool("update-self", false, "Update me to the latest version")
 	var installFlag = flag.Bool("install", true, "Install Vencord")
@@ -47,6 +52,11 @@ func main() {
 	var locationFlag = flag.String("location", "", "The location of the Discord install to modify")
 	var branchFlag = flag.String("branch", "", "The branch of Discord to modify [auto|stable|ptb|canary]")
 	flag.Parse()
+
+	if *helpFlag {
+		flag.Usage()
+		return
+	}
 
 	if *versionFlag {
 		fmt.Println("Vencord Installer Cli", buildinfo.InstallerTag, "("+buildinfo.InstallerGitHash+")")
@@ -109,18 +119,26 @@ func main() {
 }
 
 func exitSuccess() {
-	Log.Info("✔ Success!")
+	color.HiGreen("✔ Success!")
 	os.Exit(0)
 }
 
 func exitFailure() {
-	Log.Info("❌ Failed!")
+	color.HiRed("❌ Failed!")
 	cmd := exec.Command("osascript", "-e", `display notification "Failed to patch Vencord" with title "VencordInstaller"`)
 	err := cmd.Run()
 	if err != nil {
 		panic(err)
 	}
 	os.Exit(1)
+}
+
+func handlePromptError(err error) {
+	if errors.Is(err, promptui.ErrInterrupt) {
+		os.Exit(0)
+	}
+
+	Log.FatalIfErr(err)
 }
 
 func PromptDiscord(action, dir, branch string) *DiscordInstall {
@@ -138,4 +156,11 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 
 func InstallLatestBuilds() error {
 	return installLatestBuilds()
+}
+
+func HandleScuffedInstall() {
+	fmt.Println("Hold On!")
+	fmt.Println("You have a broken Discord Install.")
+	fmt.Println("Please reinstall Discord before proceeding!")
+	fmt.Println("Otherwise, Vencord will likely not work.")
 }
