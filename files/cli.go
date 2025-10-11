@@ -90,19 +90,19 @@ func main() {
 		if err == nil {
 			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
 		}
-	} else if installOpenAsar {
-		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
-		if !discord.IsOpenAsar() {
-			err = discord.InstallOpenAsar()
-		} else {
-			die("OpenAsar is already installed.")
-		}
 	} else if uninstallOpenAsar {
 		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
 		if discord.IsOpenAsar() {
 			err = discord.UninstallOpenAsar()
 		} else {
 			die("OpenAsar is not installed.")
+		}
+	} else if installOpenAsar {
+		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
+		if !discord.IsOpenAsar() {
+			err = discord.InstallOpenAsar()
+		} else {
+			die("OpenAsar is already installed.")
 		}
 	}
 
