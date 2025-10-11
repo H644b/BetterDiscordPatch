@@ -12,11 +12,12 @@ def run_sh(sh):
 
 clear()
 print("[AutoVencordPatch Installer (macOS)]")
-branch = input("Enter the branch of Discord to be automatically patched (stable, ptb, canary): ")
-openasar = input("Automatically patch OpenAsar (y/n)? ").lower().strip() == "y"
+branch = input("Enter the branch of Discord to be patched (stable, ptb, canary): ")
 if branch not in ["stable", "ptb", "canary"]:
-    input("This version of Discord doesn't exist. ")
+    input("This branch of Discord doesn't exist. ")
     exit()
+openasar = input("Patch this branch of Discord with OpenAsar (y/n)? ").lower().strip() == "y"
+use_avp = input("Do you want to automatically patch Discord through updates (y/n)? ").lower().strip() == "y"
 
 clear()
 print("[Installing AutoVencordPatch]")
@@ -76,21 +77,30 @@ chmod +x autovencordpatch
 mv autovencordpatch ../VencordInstaller.app/Contents/Resources/autovencordpatch
 """
 print("Building AutoVencordPatch...", end=" ", flush=True)
-run_sh(build_avp)
-print("done")
+if use_avp:
+    run_sh(build_avp)
+    print("done")
+else:
+    print("skipped")
 
 os.chdir("../")
-install = """
-cp autovencordpatch/org.aaron.autovencordpatch.plist ~/Library/LaunchAgents/org.aaron.autovencordpatch.plist
+mv_to_applications = """
 rm -rf /Applications/VencordInstaller.app
 mv VencordInstaller.app /Applications/VencordInstaller.app
+"""
+install = """
+cp autovencordpatch/org.aaron.autovencordpatch.plist ~/Library/LaunchAgents/org.aaron.autovencordpatch.plist
 launchctl unload ~/Library/LaunchAgents/org.aaron.autovencordpatch.plist > /dev/null 2>&1
 launchctl load ~/Library/LaunchAgents/org.aaron.autovencordpatch.plist > /dev/null 2>&1
 open /Applications/VencordInstaller.app
 """
-print("Running install scripts...", end=" ", flush=True)
-run_sh(install)
-print("done")
+print("Running AutoVencordPatch install scripts...", end=" ", flush=True)
+run_sh(mv_to_applications)
+if use_avp:
+    run_sh(install)
+    print("done")
+else:
+    print("skipped")
 
 print("Cleaning up...", end=" ", flush=True)
 os.remove("./installer/cli.go")

@@ -30,7 +30,7 @@ func isValidBranch(branch string) bool {
 
 func die(msg string) {
 	Log.Error(msg)
-	exitFailure()
+	exitFailure(msg)
 }
 
 func main() {
@@ -71,7 +71,7 @@ func main() {
 
 	if *installFlag || *updateFlag {
 		if !<-GithubDoneChan {
-			die("Not " + Ternary(*installFlag, "installing", "updating") + " as fetching release data failed")
+			die("Not " + Ternary(*installFlag, "installing", "updating") + " as fetching release data failed.")
 		}
 	}
 
@@ -95,14 +95,14 @@ func main() {
 		if !discord.IsOpenAsar() {
 			err = discord.InstallOpenAsar()
 		} else {
-			die("OpenAsar already installed")
+			die("OpenAsar is already installed.")
 		}
 	} else if uninstallOpenAsar {
 		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
 		if discord.IsOpenAsar() {
 			err = discord.UninstallOpenAsar()
 		} else {
-			die("OpenAsar not installed")
+			die("OpenAsar is not installed.")
 		}
 	}
 
@@ -122,9 +122,13 @@ func exitSuccess() {
 	os.Exit(0)
 }
 
-func exitFailure() {
+func exitFailure(reason ...string) {
+	displayed_reason := "Failed to patch Vencord"
+	if len(reason) > 0 {
+		displayed_reason = reason[0]
+	}
 	color.HiRed("❌ Failed!")
-	cmd := exec.Command("osascript", "-e", `display notification "Failed to patch Vencord" with title "VencordInstaller"`)
+	cmd := exec.Command("osascript", "-e", `display notification "`+displayed_reason+`" with title "VencordInstaller"`)
 	err := cmd.Run()
 	if err != nil {
 		panic(err)
@@ -139,7 +143,7 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 			return install
 		}
 	}
-	die("No Discord install found. Try manually specifying it with the --dir flag. Hint: snap is not supported")
+	die("No Discord install was found. Try manually specifying it with the --dir flag.")
 	return nil
 }
 
