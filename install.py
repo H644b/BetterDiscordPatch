@@ -1,4 +1,5 @@
 import os
+import platform
 
 os.chdir(os.path.dirname(__file__))
 def clear():
@@ -10,20 +11,37 @@ def run_sh(sh):
         os.system(f"{cmd}")
 
 clear()
-print("[AutoVencordPatch Installer]")
+print("[AutoVencordPatch Installer (macOS)]")
 branch = input("Enter the branch of Discord to be automatically patched (stable, ptb, canary): ")
 openasar = input("Automatically patch OpenAsar (y/n)? ").lower().strip() == "y"
 if branch not in ["stable", "ptb", "canary"]:
     input("This version of Discord doesn't exist. ")
     exit()
 
+clear()
+print("[Installing AutoVencordPatch]")
+print("Running pre-install checks...", end=" ", flush=True)
+if platform.system() != "Darwin":
+    print("failed")
+    input("This operating system is not supported by AutoVencordPatch. ")
+    exit()
+for dir in ["./files/", "./autovencordpatch/", "./installer/"]:
+    if not os.path.exists(dir):
+        print("failed")
+        input(f"The directory '{dir}' is missing. ")
+        exit()
+for file in ["./files/autovencordpatch.go", "./files/cli.go"]:
+    if not os.path.exists(file):
+        print("failed")
+        input(f"The file '{file}' is missing. ")
+        exit()
+print("done")
+
 discords = {
     "stable": "Discord.app",
     "ptb": "Discord PTB.app",
     "canary": "Discord Canary.app"
 }
-clear()
-print("[Installing AutoVencordPatch]")
 print("Preparing install environment...", end=" ", flush=True)
 avp_code = open("./files/autovencordpatch.go", "r").read()
 avp_code = avp_code.replace("Discord.app", discords[branch])
