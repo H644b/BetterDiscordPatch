@@ -148,8 +148,8 @@ func InstallLatestBuilds() error {
 }
 
 func HandleScuffedInstall() {
-	fmt.Println("Hold On!")
-	fmt.Println("You have a broken Discord Install.")
+	fmt.Println("Hold on!")
+	fmt.Println("You have a broken Discord install.")
 	fmt.Println("Please reinstall Discord before proceeding!")
 	fmt.Println("Otherwise, Vencord will likely not work.")
 }

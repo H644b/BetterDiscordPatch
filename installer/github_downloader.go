@@ -63,7 +63,7 @@ func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
 		// GitHub has a very strict 60 req/h rate limit and some (mostly indian) isps block github for some reason.
 		// If that is the case, try our fallback at https://vencord.dev/releases/project
 		if isRateLimitedOrBlocked && !triedFallback {
-			Log.Error(fmt.Sprintf("Failed to fetch %s (status code %d). Trying fallback url %s", url, res.StatusCode, fallbackUrl))
+			Log.Error(fmt.Sprintf("Failed to fetch %s (status code %d). Trying fallback URL %s", url, res.StatusCode, fallbackUrl))
 			return GetGithubRelease(fallbackUrl, fallbackUrl)
 		}
 
@@ -86,7 +86,7 @@ func InitGithubDownloader() {
 	GithubDoneChan = make(chan bool, 1)
 
 	IsDevInstall = os.Getenv("VENCORD_DEV_INSTALL") == "1"
-	Log.Debug("Is Dev Install: ", IsDevInstall)
+	Log.Debug("Is dev install: ", IsDevInstall)
 	if IsDevInstall {
 		GithubDoneChan <- true
 		return
@@ -108,8 +108,8 @@ func InitGithubDownloader() {
 
 		i := strings.LastIndex(data.Name, " ") + 1
 		LatestHash = data.Name[i:]
-		Log.Debug("Finished fetching GitHub Data")
-		Log.Debug("Latest hash is", LatestHash, "Local Install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
+		Log.Debug("Finished fetching GitHub data")
+		Log.Debug("Latest hash is", LatestHash, "Local install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
 	}()
 
 	// Check hash of installed version if exists
@@ -120,7 +120,7 @@ func InitGithubDownloader() {
 	//goland:noinspection GoUnhandledErrorResult
 	defer f.Close()
 
-	Log.Debug("Found existing Vencord Install. Checking for hash...")
+	Log.Debug("Found existing Vencord install. Checking for hash...")
 	scanner := bufio.NewScanner(f)
 	if scanner.Scan() {
 		line := scanner.Text()
