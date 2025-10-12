@@ -11,6 +11,7 @@ Vencord doesn't automatically patch itself when Discord updates, so BetterVencor
 
 ## Installation
 Download and run INSTALLER.exe or INSTALLER from the latest release, depending on your OS.</br>
+On macOS, you must run `chmod +x` to make the installer executable.</br>
 All the required files will be downloaded for you.
 
 ## Building from Source
