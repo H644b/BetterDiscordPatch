@@ -10,8 +10,13 @@ Vencord doesn't automatically patch itself when Discord updates, so BetterVencor
 - Notifications are used to communicate success, failure, and errors
 
 ## Installation
+Download and run INSTALLER.exe or INSTALLER from the latest release, depending on your OS.</br>
+All the required files will be downloaded for you.
+
+## Building from Source
+**You have much more control over your installation when building from source, including the Discord branch which is patched and whether or not to send notifications on success.**
 All original requirements for building the official installer apply here.</br>
-Run install_[YOUR OPERATING SYSTEM].py to install BetterVencordPatch.</br>
+Run install_[YOUR OPERATING SYSTEM].py to install BetterVencordPatch from source.</br>
 To build from source, install Python 3.x and Go 1.25.x. The dependencies will be automatically installed.
 
 ## Credits
