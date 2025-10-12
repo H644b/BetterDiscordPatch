@@ -25,5 +25,5 @@ rel = json.loads(releases.text)
 for asset in rel[0]["assets"]:
     if f"VencordInstaller-{"no_" if not openasar else ""}openasar{suffix}" in asset["browser_download_url"]:
         open(f"VencordInstaller{suffix}", "wb").write(requests.get(asset["browser_download_url"]).content)
-        input(f"Successfully downloaded Sunshine {rel[0]["name"]}! ")
+        input(f"Successfully downloaded BetterVencordPatch {rel[0]["name"]}! ")
         break
