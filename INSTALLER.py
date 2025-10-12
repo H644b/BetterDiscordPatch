@@ -19,7 +19,7 @@ openasar = input("Patch OpenAsar (y/n)? ").lower().strip() == "y"
 os.chdir(os.path.dirname(__file__))
 releases = requests.get("https://api.github.com/repos/introvertednoob/bettervencordpatch/releases")
 if not releases.ok:
-    print("Couldn't fetch releases. Exiting...")
+    print("\nCouldn't fetch releases. Exiting...")
     exit()
 
 paths = {
