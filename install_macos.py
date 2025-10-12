@@ -26,7 +26,7 @@ print(f"Installing with preferences: branch='{branch}', openasar={openasar}, use
 print("\nRunning pre-install checks...", end=" ", flush=True)
 if platform.system() != "Darwin":
     print("failed")
-    input("This operating system is not supported by BetterVencordPatch. ")
+    input("This operating system is not supported by this installer. ")
     exit()
 for dir in ["./files/", "./autopatch/" if use_autopatch else "./files/", "./installer/"]:
     if not os.path.exists(dir):

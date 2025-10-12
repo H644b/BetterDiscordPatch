@@ -126,7 +126,7 @@ func exitSuccess() {
 			panic(err)
 		}
 	}
-	color.HiGreen("✔ Success!")
+	color.HiGreen("Success!")
 	os.Exit(0)
 }
 
@@ -135,7 +135,7 @@ func exitFailure(reason ...string) {
 	if len(reason) > 0 {
 		displayed_reason = "Failed to patch Vencord: " + reason[0]
 	}
-	color.HiRed("❌ Failed!")
+	color.HiRed("Failed!")
 	cmd := exec.Command("osascript", "-e", `display notification "`+displayed_reason+`" with title "VencordInstaller"`)
 	err := cmd.Run()
 	if err != nil {
