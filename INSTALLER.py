@@ -50,6 +50,7 @@ for asset in rel[0]["assets"]:
                 zip_ref.extractall("/Applications/")
             shutil.move(f"/Applications/VencordInstaller-{"no_" if not openasar else ""}openasar.app", "/Applications/VencordInstaller.app")
             os.system("chmod +x /Applications/VencordInstaller.app/Contents/MacOS/vencordinstaller")
+            os.remove("VencordInstaller.app.zip")
             print(f"Successfully downloaded BetterVencordPatch")
     elif platform.system() == "Windows":
         if f"VencordInstaller-{"no_" if not openasar else ""}openasar.exe" == asset["name"]:
