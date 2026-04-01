@@ -8,7 +8,5 @@ import (
 )
 
 func notify(title, message string) error {
-	// Uses AppleScript for macOS notifications
-	return exec.Command("osascript", "-e",
-		`display notification "`+message+`" with title "`+title+`"`).Run()
+	return exec.Command("osascript", "-e", `display notification "`+message+`" with title "`+title+`"`).Run()
 }

@@ -55,7 +55,7 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Println("BetterVencordPatch v0.1.0")
+		fmt.Println("BetterVencordPatch v0.2.0")
 		fmt.Println("Using the Vencord Installer CLI (v1.4.0, modified)")
 		fmt.Println("Modified by @introvertednoob to install Vencord without user interaction")
 		fmt.Println("\nCopyright (C) 2023 Vendicated and Vencord contributors")
@@ -110,7 +110,7 @@ func main() {
 
 	if err != nil {
 		Log.Error(err)
-		exitFailure()
+		exitFailure(err.Error())
 	}
 	if errSilent != nil {
 		exitFailure()
@@ -137,7 +137,6 @@ func exitFailure(reason ...string) {
 		displayed_reason = "Failed to patch Vencord: " + reason[0]
 	}
 	color.HiRed("Failed!")
-	//cmd := exec.Command("osascript", "-e", display notification "++" with title "VencordInstaller")
 
 	if runtime.GOOS == "darwin" {
 		notify("BetterVencordPatch", displayed_reason)

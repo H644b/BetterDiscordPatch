@@ -9,7 +9,6 @@ package main
 import (
 	"errors"
 	"os"
-	"os/exec"
 	path "path/filepath"
 
 	"github.com/ProtonMail/go-appdir"
@@ -103,7 +102,7 @@ func (di *DiscordInstall) patch() error {
 	Log.Info("Patching " + di.path + "...")
 	if LatestHash != InstalledHash {
 		if err := InstallLatestBuilds(); err != nil {
-			return nil // already shown dialog so don't return same error again
+			return err // already shown dialog so don't return same error again
 		}
 	}
 
@@ -113,11 +112,7 @@ func (di *DiscordInstall) patch() error {
 		Log.Info(di.path, "is already patched. Unpatching first...")
 		if err := di.unpatch(); err != nil {
 			if errors.Is(err, os.ErrPermission) {
-				cmd := exec.Command("osascript", "-e", `display notification "The App Management/Full Disk Access permission must be granted to allow VencordInstaller to patch Vencord." with title "VencordInstaller"`)
-				err_ := cmd.Run()
-				if err_ != nil {
-					panic(err_)
-				}
+				notify("BetterVencordPatch", "The App Management/Full Disk Access permission must be granted to allow VencordInstaller to patch Vencord. Make sure Discord isn't running!")
 				os.Exit(1)
 				return err
 			}
@@ -126,6 +121,11 @@ func (di *DiscordInstall) patch() error {
 	}
 
 	if err := patchAppAsar(path.Join(di.appPath, ".."), di.isSystemElectron); err != nil {
+		if errors.Is(err, os.ErrPermission) {
+			notify("BetterVencordPatch", "The App Management/Full Disk Access permission must be granted to allow VencordInstaller to patch Vencord. Make sure Discord isn't running!")
+			os.Exit(1)
+			return err
+		}
 		return err
 	}
 
