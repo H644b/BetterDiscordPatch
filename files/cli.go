@@ -47,7 +47,7 @@ func main() {
 	var installFlag = flag.Bool("install", true, "Install BetterDiscord")
 	var updateFlag = flag.Bool("repair", false, "Repair BetterDiscord")
 	var uninstallFlag = flag.Bool("uninstall", false, "Uninstall BetterDiscord")
-	var locationFlag = flag.String("location", "", "The location of the Discord install to modify")
+	var dirFlag = flag.String("dir", "", "The location of the Discord install to modify")
 	var branchFlag = flag.String("branch", pyBranch, "The branch of Discord to modify [auto|stable|ptb|canary]")
 	flag.Parse()
 
@@ -55,10 +55,6 @@ func main() {
 		fmt.Println("BetterDiscordPatch v0.3.0")
 		fmt.Println("Modified to install BetterDiscord without user interaction")
 		return
-	}
-
-	if *locationFlag != "" && *branchFlag != "" {
-		die("The 'location' and 'branch' flags are mutually exclusive.")
 	}
 
 	if !isValidBranch(*branchFlag) {
@@ -76,15 +72,15 @@ func main() {
 	var err error
 	var errSilent error
 	if install {
-		errSilent = PromptDiscord("patch", *locationFlag, *branchFlag).patch()
+		errSilent = PromptDiscord("patch", *dirFlag, *branchFlag).patch()
 	} else if uninstall {
-		errSilent = PromptDiscord("unpatch", *locationFlag, *branchFlag).unpatch()
+		errSilent = PromptDiscord("unpatch", *dirFlag, *branchFlag).unpatch()
 	} else if update {
 		Log.Info("Downloading latest BetterDiscord files...")
 		err := installLatestBuilds()
 		Log.Info("Done!")
 		if err == nil {
-			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
+			errSilent = PromptDiscord("repair", *dirFlag, *branchFlag).patch()
 		}
 	}
 
@@ -127,13 +123,21 @@ func exitFailure(reason ...string) {
 }
 
 func PromptDiscord(action, dir, branch string) *DiscordInstall {
+	if dir != "" {
+		install := ParseDiscord(dir, branch)
+		if install == nil {
+			die("No Discord install was found at the specified directory.")
+		}
+		return install
+	}
+
 	for _, discord := range discords {
 		install := discord.(*DiscordInstall)
-		if install.branch == branch {
+		if branch == "auto" || install.branch == branch {
 			return install
 		}
 	}
-	die("No Discord install was found. Try manually specifying it with the --dir flag.")
+	die("No Discord install was found. Try manually specifying the directory with --dir.")
 	return nil
 }
 
