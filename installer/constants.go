@@ -8,15 +8,13 @@ package main
 
 import (
 	"image/color"
-	"vencordinstaller/buildinfo"
+	"betterdiscordpatch/buildinfo"
 )
 
-const ReleaseUrl = "https://api.github.com/repos/Vendicated/Vencord/releases/latest"
-const ReleaseUrlFallback = "https://vencord.dev/releases/vencord"
-const InstallerReleaseUrl = "https://api.github.com/repos/Vencord/Installer/releases/latest"
-const InstallerReleaseUrlFallback = "https://vencord.dev/releases/installer"
+const ReleaseUrl = "https://api.github.com/repos/BetterDiscord/BetterDiscord/releases/latest"
+const ReleaseUrlFallback = "https://api.github.com/repos/BetterDiscord/BetterDiscord/releases/latest"
 
-var UserAgent = "VencordInstaller/" + buildinfo.InstallerGitHash + " (https://github.com/Vencord/Installer)"
+var UserAgent = "BetterDiscordPatch/" + buildinfo.InstallerGitHash + " (https://github.com/BetterDiscord/BetterDiscord)"
 
 var (
 	DiscordGreen  = color.RGBA{R: 0x2D, G: 0x7C, B: 0x46, A: 0xFF}

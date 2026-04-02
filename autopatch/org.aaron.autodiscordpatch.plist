@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>org.aaron.autovencordpatch</string>
+    <string>org.aaron.autodiscordpatch</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Applications/VencordInstaller.app/Contents/Resources/autovencordpatch</string>
+        <string>/Applications/BetterDiscordPatch.app/Contents/Resources/autodiscordpatch</string>
     </array>
 
     <key>RunAtLoad</key>

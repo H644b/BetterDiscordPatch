@@ -7,7 +7,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,7 +16,6 @@ import (
 	path "path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type GithubRelease struct {
@@ -61,7 +59,7 @@ func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
 		triedFallback := url == fallbackUrl
 
 		// GitHub has a very strict 60 req/h rate limit and some (mostly indian) isps block github for some reason.
-		// If that is the case, try our fallback at https://vencord.dev/releases/project
+		// If that is the case, try the fallback URL.
 		if isRateLimitedOrBlocked && !triedFallback {
 			Log.Error(fmt.Sprintf("Failed to fetch %s (status code %d). Trying fallback URL %s", url, res.StatusCode, fallbackUrl))
 			return GetGithubRelease(fallbackUrl, fallbackUrl)
@@ -85,7 +83,7 @@ func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
 func InitGithubDownloader() {
 	GithubDoneChan = make(chan bool, 1)
 
-	IsDevInstall = os.Getenv("VENCORD_DEV_INSTALL") == "1"
+	IsDevInstall = os.Getenv("BD_DEV_INSTALL") == "1"
 	Log.Debug("Is dev install: ", IsDevInstall)
 	if IsDevInstall {
 		GithubDoneChan <- true
@@ -106,95 +104,75 @@ func InitGithubDownloader() {
 
 		ReleaseData = *data
 
-		i := strings.LastIndex(data.Name, " ") + 1
-		LatestHash = data.Name[i:]
+		LatestHash = data.TagName
 		Log.Debug("Finished fetching GitHub data")
-		Log.Debug("Latest hash is", LatestHash, "Local install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
+		Log.Debug("Latest version is", LatestHash, "Local install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
 	}()
 
-	// Check hash of installed version if exists
-	f, err := os.Open(Patcher)
+	// Check version of installed BetterDiscord if exists
+	versionFile := path.Join(FilesDir, "version.txt")
+	b, err := os.ReadFile(versionFile)
 	if err != nil {
 		return
 	}
-	//goland:noinspection GoUnhandledErrorResult
-	defer f.Close()
 
-	Log.Debug("Found existing Vencord install. Checking for hash...")
-	scanner := bufio.NewScanner(f)
-	if scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "// Vencord ") {
-			InstalledHash = line[11:]
-			Log.Debug("Existing hash is", InstalledHash)
-		} else {
-			Log.Debug("Didn't find hash")
-		}
-	}
+	Log.Debug("Found existing BetterDiscord install. Checking version...")
+	InstalledHash = strings.TrimSpace(string(b))
+	Log.Debug("Existing version is", InstalledHash)
 }
 
 func installLatestBuilds() (retErr error) {
 	Log.Debug("Installing latest builds...")
 
-	// create an empty package.json file in our files dir.
-	// without this, node will walk up the file tree and search for a package.json in the
-	// parent folders. This might lead to issues if the user for example has ~/package.json
-	// with type: "module" in it
-	pkgJsonFile := path.Join(FilesDir, "package.json")
-	err := os.WriteFile(pkgJsonFile, []byte("{}"), 0644)
-	if err != nil {
-		Log.Warn("Failed to create", pkgJsonFile, err)
-	}
-
-	var wg sync.WaitGroup
-
 	for _, ass := range ReleaseData.Assets {
-		if strings.HasPrefix(ass.Name, "patcher.js") ||
-			strings.HasPrefix(ass.Name, "preload.js") ||
-			strings.HasPrefix(ass.Name, "renderer.js") ||
-			strings.HasPrefix(ass.Name, "renderer.css") {
-			wg.Add(1)
-			ass := ass // Need to do this to not have the variable be overwritten halfway through
-			go func() {
-				defer wg.Done()
-				Log.Debug("Downloading file", ass.Name)
+		if ass.Name == "betterdiscord.asar" {
+			Log.Debug("Downloading file", ass.Name)
 
-				res, err := http.Get(ass.DownloadURL)
-				if err == nil && res.StatusCode >= 300 {
-					err = errors.New(res.Status)
-				}
-				if err != nil {
-					Log.Error("Failed to download", ass.Name+":", err)
-					retErr = err
-					return
-				}
-				outFile := path.Join(FilesDir, ass.Name)
-				out, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-				if err != nil {
-					Log.Error("Failed to create", outFile+":", err)
-					retErr = err
-					return
-				}
-				read, err := io.Copy(out, res.Body)
-				if err != nil {
-					Log.Error("Failed to download to", outFile+":", err)
-					retErr = err
-					return
-				}
-				contentLength := res.Header.Get("Content-Length")
-				expected := strconv.FormatInt(read, 10)
-				if expected != contentLength {
-					err = errors.New("Unexpected end of input. Content-Length was " + contentLength + ", but I only read " + expected)
-					Log.Error(err.Error())
-					retErr = err
-					return
-				}
-			}()
+			res, err := http.Get(ass.DownloadURL)
+			if err == nil && res.StatusCode >= 300 {
+				err = errors.New(res.Status)
+			}
+			if err != nil {
+				Log.Error("Failed to download", ass.Name+":", err)
+				retErr = err
+				return
+			}
+			outFile := path.Join(FilesDir, ass.Name)
+			out, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+			if err != nil {
+				Log.Error("Failed to create", outFile+":", err)
+				retErr = err
+				return
+			}
+			read, err := io.Copy(out, res.Body)
+			_ = out.Close()
+			if err != nil {
+				Log.Error("Failed to download to", outFile+":", err)
+				retErr = err
+				return
+			}
+			contentLength := res.Header.Get("Content-Length")
+			expected := strconv.FormatInt(read, 10)
+			if expected != contentLength {
+				err = errors.New("Unexpected end of input. Content-Length was " + contentLength + ", but I only read " + expected)
+				Log.Error(err.Error())
+				retErr = err
+				return
+			}
+			break
 		}
 	}
 
-	wg.Wait()
-	Log.Debug("Done!")
+	if retErr != nil {
+		return
+	}
+
+	// Write version tag so we can detect up-to-date installs on next run
+	versionFile := path.Join(FilesDir, "version.txt")
+	if err := os.WriteFile(versionFile, []byte(LatestHash), 0644); err != nil {
+		Log.Warn("Failed to write", versionFile, err)
+	}
+
 	_ = FixOwnership(FilesDir)
 
 	InstalledHash = LatestHash

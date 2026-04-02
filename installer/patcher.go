@@ -20,17 +20,14 @@ var FilesDirErr error
 var Patcher string
 
 func init() {
-	if dir := os.Getenv("VENCORD_USER_DATA_DIR"); dir != "" {
-		Log.Debug("Using VENCORD_USER_DATA_DIR")
+	if dir := os.Getenv("BD_USER_DATA_DIR"); dir != "" {
+		Log.Debug("Using BD_USER_DATA_DIR")
 		BaseDir = dir
-	} else if dir = os.Getenv("DISCORD_USER_DATA_DIR"); dir != "" {
-		Log.Debug("Using DISCORD_USER_DATA_DIR/../VencordData")
-		BaseDir = path.Join(dir, "..", "VencordData")
 	} else {
 		Log.Debug("Using UserConfig")
-		BaseDir = appdir.New("Vencord").UserConfig()
+		BaseDir = appdir.New("BetterDiscord").UserConfig()
 	}
-	FilesDir = path.Join(BaseDir, "dist")
+	FilesDir = path.Join(BaseDir, "data")
 	if !ExistsFile(FilesDir) {
 		FilesDirErr = os.MkdirAll(FilesDir, 0755)
 		if FilesDirErr != nil {
@@ -39,7 +36,7 @@ func init() {
 			FilesDirErr = FixOwnership(BaseDir)
 		}
 	}
-	Patcher = path.Join(FilesDir, "patcher.js")
+	Patcher = path.Join(FilesDir, "betterdiscord.asar")
 }
 
 type DiscordInstall struct {
@@ -112,7 +109,7 @@ func (di *DiscordInstall) patch() error {
 		Log.Info(di.path, "is already patched. Unpatching first...")
 		if err := di.unpatch(); err != nil {
 			if errors.Is(err, os.ErrPermission) {
-				notify("BetterVencordPatch", "The App Management/Full Disk Access permission must be granted to allow VencordInstaller to patch Vencord. Make sure Discord isn't running!")
+				notify("BetterDiscordPatch", "The App Management/Full Disk Access permission must be granted to allow BetterDiscordPatch to patch BetterDiscord. Make sure Discord isn't running!")
 				os.Exit(1)
 				return err
 			}
@@ -122,7 +119,7 @@ func (di *DiscordInstall) patch() error {
 
 	if err := patchAppAsar(path.Join(di.appPath, ".."), di.isSystemElectron); err != nil {
 		if errors.Is(err, os.ErrPermission) {
-			notify("BetterVencordPatch", "The App Management/Full Disk Access permission must be granted to allow VencordInstaller to patch Vencord. Make sure Discord isn't running!")
+			notify("BetterDiscordPatch", "The App Management/Full Disk Access permission must be granted to allow BetterDiscordPatch to patch BetterDiscord. Make sure Discord isn't running!")
 			os.Exit(1)
 			return err
 		}
