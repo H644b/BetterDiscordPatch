@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -13,7 +14,9 @@ import (
 )
 
 const (
-	checkInterval = 1 * time.Second
+	checkInterval  = 1 * time.Second
+	updateTimeout  = 2 * time.Minute
+	updatePollRate = 2 * time.Second
 )
 
 func runInstaller() {
@@ -29,7 +32,7 @@ func runInstaller() {
 }
 
 func killDiscord() {
-	cmd := exec.Command("C:\\Windows\\System32\\taskkill.exe", "/f", "/im", "betterdiscordpatch/betterdiscordpatch.exe")
+	cmd := exec.Command("C:\\Windows\\System32\\taskkill.exe", "/f", "/im", "Discord.exe")
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow:    true,
 		CreationFlags: windows.CREATE_NO_WINDOW,
@@ -52,8 +55,31 @@ func startDiscord() {
 	}
 }
 
+// waitForUpdateComplete polls the new app directory until core.asar appears in
+// the discord_desktop_core module, indicating that Squirrel has finished
+// extracting the update. Returns true on success or false if it times out.
+func waitForUpdateComplete(appDir string) bool {
+	deadline := time.Now().Add(updateTimeout)
+	for time.Now().Before(deadline) {
+		modulesPath := filepath.Join(appDir, "modules")
+		entries, err := os.ReadDir(modulesPath)
+		if err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() && strings.HasPrefix(entry.Name(), "discord_desktop_core") {
+					corePath := filepath.Join(modulesPath, entry.Name(), "discord_desktop_core", "core.asar")
+					if _, err := os.Stat(corePath); err == nil {
+						return true
+					}
+				}
+			}
+		}
+		time.Sleep(updatePollRate)
+	}
+	return false
+}
+
 func main() {
-	discordJSON := filepath.Join(os.Getenv("LOCALAPPDATA"), "Discord/rm-1")
+	discordDir := filepath.Join(os.Getenv("LOCALAPPDATA"), "Discord")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		fmt.Println("["+time.Now().Format("2006-01-02 15:04:05")+"] Failed to create watcher:", err)
@@ -61,8 +87,7 @@ func main() {
 	}
 	defer watcher.Close()
 
-	dir := filepath.Dir(discordJSON)
-	err = watcher.Add(dir)
+	err = watcher.Add(discordDir)
 	if err != nil {
 		fmt.Println("["+time.Now().Format("2006-01-02 15:04:05")+"] Failed to add watcher:", err)
 		return
@@ -70,18 +95,25 @@ func main() {
 
 	fmt.Println("[" + time.Now().Format("2006-01-02 15:04:05") + "] Watching for Discord updates...")
 
-	rms := 0
 	for {
 		select {
 		case event := <-watcher.Events:
-			if filepath.Clean(event.Name) == discordJSON && event.Op&fsnotify.Remove == fsnotify.Remove && rms == 1 {
-				fmt.Println("[" + time.Now().Format("2006-01-02 15:04:05") + "] Discord has finished updating, re-opening Discord...")
-				killDiscord()
-				runInstaller()
-				startDiscord()
-				rms = 0
-			} else if filepath.Clean(event.Name) == discordJSON && event.Op&fsnotify.Remove == fsnotify.Remove {
-				rms = 1
+			if event.Op&fsnotify.Create == fsnotify.Create {
+				name := filepath.Base(event.Name)
+				if strings.HasPrefix(name, "app-") {
+					info, err := os.Stat(event.Name)
+					if err == nil && info.IsDir() {
+						fmt.Println("[" + time.Now().Format("2006-01-02 15:04:05") + "] Discord is updating (new version: " + name + "), waiting for completion...")
+						if waitForUpdateComplete(event.Name) {
+							fmt.Println("[" + time.Now().Format("2006-01-02 15:04:05") + "] Discord update complete, running BetterDiscord patcher...")
+							killDiscord()
+							runInstaller()
+							startDiscord()
+						} else {
+							fmt.Println("[" + time.Now().Format("2006-01-02 15:04:05") + "] Timed out waiting for Discord update to complete")
+						}
+					}
+				}
 			}
 		case err := <-watcher.Errors:
 			fmt.Println("Watcher error:", err)
