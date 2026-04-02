@@ -7,9 +7,11 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	path "path/filepath"
+	"strings"
 
 	"github.com/ProtonMail/go-appdir"
 )
@@ -42,56 +44,38 @@ func init() {
 type DiscordInstall struct {
 	path             string // the base path
 	branch           string // canary / stable / ...
-	appPath          string // List of app folder to patch
+	appPath          string // discord_desktop_core directory to inject index.js into
+	resourcesPath    string // resources directory (used for OpenAsar)
 	isPatched        bool
 	isFlatpak        bool
 	isSystemElectron bool // Needs special care https://aur.archlinux.org/packages/discord_arch_electron
 	isOpenAsar       *bool
 }
 
+// isInjected reports whether the discord_desktop_core directory already has a BD shim.
+func isInjected(dir string) bool {
+	indexJs := path.Join(dir, "index.js")
+	content, err := os.ReadFile(indexJs)
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(content), "betterdiscord.asar")
+}
+
 //region Patch
 
-func patchAppAsar(dir string, isSystemElectron bool) (err error) {
-	appAsar := path.Join(dir, "app.asar")
-	_appAsar := path.Join(dir, "_app.asar")
-
-	var renamesDone [][]string
-	defer func() {
-		if err != nil && len(renamesDone) > 0 {
-			Log.Error("Failed to patch. Undoing partial patch")
-			for _, rename := range renamesDone {
-				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
-					Log.Error("Failed to undo partial patch. This install is probably bricked.", innerErr)
-				} else {
-					Log.Info("Successfully undid all changes")
-				}
-			}
-		}
-	}()
-
-	Log.Debug("Renaming", appAsar, "to", _appAsar)
-	if err := os.Rename(appAsar, _appAsar); err != nil {
+// injectShim writes the BetterDiscord loader shim into discord_desktop_core/index.js.
+// The shim requires betterdiscord.asar and then re-exports the original core.asar,
+// which is how the official BetterDiscord installer injects BD into Discord.
+func injectShim(dir string) error {
+	indexJs := path.Join(dir, "index.js")
+	patcherPathB, _ := json.Marshal(Patcher)
+	content := "require(" + string(patcherPathB) + ");\nmodule.exports = require(\"./core.asar\");"
+	Log.Debug("Writing shim to", indexJs)
+	if err := os.WriteFile(indexJs, []byte(content), 0644); err != nil {
 		err = CheckIfErrIsCauseItsBusyRn(err)
-		Log.Error(err.Error())
 		return err
 	}
-	renamesDone = append(renamesDone, []string{appAsar, _appAsar})
-
-	if isSystemElectron {
-		from, to := appAsar+".unpacked", _appAsar+".unpacked"
-		Log.Debug("Renaming", from, "to", to)
-		err := os.Rename(from, to)
-		if err != nil {
-			return err
-		}
-		renamesDone = append(renamesDone, []string{from, to})
-	}
-
-	Log.Debug("Writing custom app.asar to", appAsar)
-	if err := WriteAppAsar(appAsar, Patcher); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -106,18 +90,10 @@ func (di *DiscordInstall) patch() error {
 	PreparePatch(di)
 
 	if di.isPatched {
-		Log.Info(di.path, "is already patched. Unpatching first...")
-		if err := di.unpatch(); err != nil {
-			if errors.Is(err, os.ErrPermission) {
-				notify("BetterDiscordPatch", "The App Management/Full Disk Access permission must be granted to allow BetterDiscordPatch to patch BetterDiscord. Make sure Discord isn't running!")
-				os.Exit(1)
-				return err
-			}
-			return errors.New("patch: Failed to unpatch already patched install '" + di.path + "':\n" + err.Error())
-		}
+		Log.Info(di.path, "is already patched. Updating shim...")
 	}
 
-	if err := patchAppAsar(path.Join(di.appPath, ".."), di.isSystemElectron); err != nil {
+	if err := injectShim(di.appPath); err != nil {
 		if errors.Is(err, os.ErrPermission) {
 			notify("BetterDiscordPatch", "The App Management/Full Disk Access permission must be granted to allow BetterDiscordPatch to patch BetterDiscord. Make sure Discord isn't running!")
 			os.Exit(1)
@@ -136,55 +112,16 @@ func (di *DiscordInstall) patch() error {
 
 // region Unpatch
 
-func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
-	appAsar := path.Join(dir, "app.asar")
-	appAsarTmp := path.Join(dir, "app.asar.tmp")
-	_appAsar := path.Join(dir, "_app.asar")
-
-	var renamesDone [][]string
-	defer func() {
-		if errOut != nil && len(renamesDone) > 0 {
-			Log.Error("Failed to unpatch. Undoing partial unpatch")
-			for _, rename := range renamesDone {
-				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
-					Log.Error("Failed to undo partial unpatch. This install is probably bricked.", innerErr)
-				} else {
-					Log.Info("Successfully undid all changes")
-				}
-			}
-		} else if errOut == nil {
-			if innerErr := os.RemoveAll(appAsarTmp); innerErr != nil {
-				Log.Warn("Failed to delete temporary app.asar (patch folder) backup. This is whatever but you might want to delete it manually.", innerErr)
-			}
-		}
-	}()
-
-	Log.Debug("Deleting", appAsar)
-	if err := os.Rename(appAsar, appAsarTmp); err != nil {
+// removeShim restores discord_desktop_core/index.js to its original unmodified state.
+func removeShim(dir string) (errOut error) {
+	indexJs := path.Join(dir, "index.js")
+	Log.Debug("Restoring", indexJs)
+	if err := os.WriteFile(indexJs, []byte("module.exports = require(\"./core.asar\");"), 0644); err != nil {
 		err = CheckIfErrIsCauseItsBusyRn(err)
 		Log.Error(err.Error())
-		errOut = err
-	} else {
-		renamesDone = append(renamesDone, []string{appAsar, appAsarTmp})
+		return err
 	}
-
-	Log.Debug("Renaming", _appAsar, "to", appAsar)
-	if err := os.Rename(_appAsar, appAsar); err != nil {
-		err = CheckIfErrIsCauseItsBusyRn(err)
-		Log.Error(err.Error())
-		errOut = err
-	} else {
-		renamesDone = append(renamesDone, []string{_appAsar, appAsar})
-	}
-
-	if isSystemElectron {
-		Log.Debug("Renaming", _appAsar+".unpacked", "to", appAsar+".unpacked")
-		if err := os.Rename(_appAsar+".unpacked", appAsar+".unpacked"); err != nil {
-			Log.Error(err.Error())
-			errOut = err
-		}
-	}
-	return
+	return nil
 }
 
 func (di *DiscordInstall) unpatch() error {
@@ -192,7 +129,7 @@ func (di *DiscordInstall) unpatch() error {
 
 	PreparePatch(di)
 
-	if err := unpatchAppAsar(path.Join(di.appPath, ".."), di.isSystemElectron); err != nil {
+	if err := removeShim(di.appPath); err != nil {
 		return err
 	}
 

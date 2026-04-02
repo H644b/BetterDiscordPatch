@@ -10,6 +10,7 @@ import (
 	"errors"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 )
@@ -26,6 +27,32 @@ func ExistsFile(path string) bool {
 	_, err := os.Stat(path)
 	Log.Debug("Checking if", path, "exists:", Ternary(err == nil, "Yes", "No"))
 	return err == nil
+}
+
+// parseVersion parses a version string like "1.0.9080" or "0.0.298" into a
+// slice of integers for proper numeric comparison.
+func parseVersion(v string) []int {
+	parts := strings.Split(v, ".")
+	nums := make([]int, len(parts))
+	for i, p := range parts {
+		nums[i], _ = strconv.Atoi(p)
+	}
+	return nums
+}
+
+// versionGreater returns true if version string a is numerically greater than b.
+// It strips a leading "app-" prefix before comparing.
+func versionGreater(a, b string) bool {
+	a = strings.TrimPrefix(a, "app-")
+	b = strings.TrimPrefix(b, "app-")
+	av := parseVersion(a)
+	bv := parseVersion(b)
+	for i := 0; i < len(av) && i < len(bv); i++ {
+		if av[i] != bv[i] {
+			return av[i] > bv[i]
+		}
+	}
+	return len(av) > len(bv)
 }
 
 func IsDirectory(path string) bool {
