@@ -25,6 +25,9 @@ var windowsNames = map[string]string{
 
 var killLock sync.Mutex
 
+// ParseDiscord finds the discord_desktop_core module directory within a Discord
+// installation base path, which is where BetterDiscord's shim must be injected.
+// This mirrors the official BetterDiscord installer's approach.
 func ParseDiscord(p, branch string) *DiscordInstall {
 	entries, err := os.ReadDir(p)
 	if err != nil {
@@ -34,19 +37,48 @@ func ParseDiscord(p, branch string) *DiscordInstall {
 		return nil
 	}
 
-	isPatched := false
 	appPath := ""
-	for _, dir := range entries {
-		if dir.IsDir() && strings.HasPrefix(dir.Name(), "app-") {
-			resources := path.Join(p, dir.Name(), "resources")
-			if !ExistsFile(resources) {
+	resourcesPath := ""
+	isPatched := false
+
+	for _, versionDir := range entries {
+		if !versionDir.IsDir() || !strings.HasPrefix(versionDir.Name(), "app-") {
+			continue
+		}
+
+		versionPath := path.Join(p, versionDir.Name())
+		modulesPath := path.Join(versionPath, "modules")
+		if !ExistsFile(modulesPath) {
+			continue
+		}
+
+		moduleEntries, err := os.ReadDir(modulesPath)
+		if err != nil {
+			continue
+		}
+
+		bestCoreDir := ""
+		bestResources := ""
+		for _, mdir := range moduleEntries {
+			if !mdir.IsDir() || !strings.HasPrefix(mdir.Name(), "discord_desktop_core") {
 				continue
 			}
-			app := path.Join(resources, "app")
-			if app > appPath {
-				appPath = app
-				isPatched = ExistsFile(path.Join(resources, "_app.asar"))
+			coreDir := path.Join(modulesPath, mdir.Name(), "discord_desktop_core")
+			if !ExistsFile(path.Join(coreDir, "core.asar")) {
+				continue
 			}
+			// Pick the highest-numbered discord_desktop_core-N variant
+			if bestCoreDir == "" || mdir.Name() > path.Base(path.Dir(bestCoreDir)) {
+				bestCoreDir = coreDir
+				bestResources = path.Join(versionPath, "resources")
+			}
+		}
+
+		// Keep the candidate from the latest app-x.y.z version directory
+		if bestCoreDir != "" && (appPath == "" || versionGreater(versionDir.Name(), path.Base(path.Dir(path.Dir(path.Dir(appPath)))))) {
+			appPath = bestCoreDir
+			resourcesPath = bestResources
+			isPatched = isInjected(bestCoreDir)
 		}
 	}
 
@@ -62,6 +94,7 @@ func ParseDiscord(p, branch string) *DiscordInstall {
 		path:             p,
 		branch:           branch,
 		appPath:          appPath,
+		resourcesPath:    resourcesPath,
 		isPatched:        isPatched,
 		isFlatpak:        false,
 		isSystemElectron: false,

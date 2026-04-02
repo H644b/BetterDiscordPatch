@@ -43,7 +43,11 @@ func (di *DiscordInstall) IsOpenAsar() (retBool bool) {
 		di.isOpenAsar = &retBool
 	}()
 
-	asarFile, err := FindAsarFile(path.Join(di.appPath, ".."))
+	if di.resourcesPath == "" {
+		return false
+	}
+
+	asarFile, err := FindAsarFile(di.resourcesPath)
 	if err != nil {
 		Log.Error(err.Error())
 		return false
@@ -66,7 +70,11 @@ func (di *DiscordInstall) IsOpenAsar() (retBool bool) {
 func (di *DiscordInstall) InstallOpenAsar() error {
 	PreparePatch(di)
 
-	dir := path.Join(di.appPath, "..")
+	if di.resourcesPath == "" {
+		return errors.New("No resources path available for this Discord install")
+	}
+
+	dir := di.resourcesPath
 	asarFile, err := FindAsarFile(dir)
 	if err != nil {
 		return err
@@ -100,7 +108,11 @@ func (di *DiscordInstall) InstallOpenAsar() error {
 func (di *DiscordInstall) UninstallOpenAsar() error {
 	PreparePatch(di)
 
-	dir := path.Join(di.appPath, "..")
+	if di.resourcesPath == "" {
+		return errors.New("No resources path available for this Discord install")
+	}
+
+	dir := di.resourcesPath
 	// .original is our old name
 	// OpenAsar's updater uses .backup, so we now also use that - .original is deprecated
 	for _, file := range []string{path.Join(dir, "app.asar.backup"), path.Join(dir, "app.asar.original")} {
