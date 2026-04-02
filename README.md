@@ -26,3 +26,4 @@ Auto-patcher created by [Aaron Wijesinghe](https://github.com/introvertednoob)
 This software uses a modified version of the [Vencord Installer](https://github.com/Vencord/Installer)</br>
 Copyright (c) 2023 Vendicated and Vencord contributors</br>
 Licensed under the GNU General Public License v3.0</br>
+Credit to guy who originally made vencord ver of this.
