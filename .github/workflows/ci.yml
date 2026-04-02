@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: installer/go.mod
+          cache-dependency-path: installer/go.sum
+
+      - name: Build BetterDiscordPatch (macOS)
+        run: |
+          cp files/cli.go installer/cli.go
+          cd installer
+          go mod tidy
+          CGO_ENABLED=0 go build --tags cli -o BetterDiscordPatch .
+          cd ..
+          rm installer/cli.go
+
+      - name: Build autodiscordpatch (macOS)
+        run: |
+          cp files/autovencordpatch.go autopatch/autovencordpatch.go
+          cd autopatch
+          go mod tidy
+          CGO_ENABLED=0 go build -o autodiscordpatch autovencordpatch.go
+          rm autovencordpatch.go
+
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: installer/go.mod
+          cache-dependency-path: installer/go.sum
+
+      - name: Build BetterDiscordPatch.exe (Windows)
+        run: |
+          cp files/cli.go installer/cli.go
+          cd installer
+          go mod tidy
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui" --tags cli -o BetterDiscordPatch.exe .
+          cd ..
+          rm installer/cli.go
+
+      - name: Build autodiscordpatch.exe (Windows)
+        run: |
+          cp files/autovencordpatch_win.go autopatch/autovencordpatch_win.go
+          cd autopatch
+          go mod tidy
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui" -o autodiscordpatch.exe autovencordpatch_win.go
+          rm autovencordpatch_win.go

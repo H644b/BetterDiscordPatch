@@ -67,4 +67,4 @@ os.remove("./autopatch/autovencordpatch_win.go")
 
 for op in ["Windows", "Darwin"]:
     build(op)
-os.system("cp ./autopatch/org.aaron.autovencordpatch.plist ./binaries/org.aaron.autodiscordpatch.plist")
+os.system("cp ./autopatch/org.aaron.autodiscordpatch.plist ./binaries/org.aaron.autodiscordpatch.plist")

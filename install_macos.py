@@ -93,7 +93,7 @@ run_sh(mv_to_applications)
 if use_autopatch:
     print("Running auto-patch install scripts...", end=" ", flush=True)
     install = """
-    cp autopatch/org.aaron.autovencordpatch.plist ~/Library/LaunchAgents/org.aaron.autodiscordpatch.plist
+    cp autopatch/org.aaron.autodiscordpatch.plist ~/Library/LaunchAgents/org.aaron.autodiscordpatch.plist
     launchctl unload ~/Library/LaunchAgents/org.aaron.autodiscordpatch.plist > /dev/null 2>&1
     launchctl load ~/Library/LaunchAgents/org.aaron.autodiscordpatch.plist > /dev/null 2>&1
     open /Applications/BetterDiscordPatch.app

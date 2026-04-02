@@ -1,0 +1,136 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # ── macOS: .app bundle, macOS autodiscordpatch, macOS INSTALLER binary ──
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: installer/go.mod
+          cache-dependency-path: installer/go.sum
+
+      - name: Build BetterDiscordPatch.app (macOS)
+        run: |
+          cp files/cli.go installer/cli.go
+          cd installer
+          go mod tidy
+          CGO_ENABLED=0 go build --tags cli -o BetterDiscordPatch .
+          mkdir -p BetterDiscordPatch.app/Contents/MacOS
+          mkdir -p BetterDiscordPatch.app/Contents/Resources
+          cp macos/Info.plist BetterDiscordPatch.app/Contents/Info.plist
+          mv BetterDiscordPatch BetterDiscordPatch.app/Contents/MacOS/BetterDiscordPatch
+          cp macos/icon.icns BetterDiscordPatch.app/Contents/Resources/icon.icns
+          zip -r ../BetterDiscordPatch.app.zip BetterDiscordPatch.app
+          cd ..
+          rm installer/cli.go
+
+      - name: Build autodiscordpatch (macOS)
+        run: |
+          cp files/autovencordpatch.go autopatch/autovencordpatch.go
+          cd autopatch
+          go mod tidy
+          CGO_ENABLED=0 go build -o autodiscordpatch autovencordpatch.go
+          rm autovencordpatch.go
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build INSTALLER (macOS)
+        run: |
+          pip install --quiet pyinstaller requests
+          pyinstaller --onefile --name INSTALLER INSTALLER.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            BetterDiscordPatch.app.zip
+            autopatch/autodiscordpatch
+            autopatch/org.aaron.autodiscordpatch.plist
+            dist/INSTALLER
+
+  # ── Windows binaries (cross-compiled on Linux) ──
+  build-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: installer/go.mod
+          cache-dependency-path: installer/go.sum
+
+      - name: Build BetterDiscordPatch.exe (Windows)
+        run: |
+          cp files/cli.go installer/cli.go
+          cd installer
+          go mod tidy
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui" --tags cli -o BetterDiscordPatch.exe .
+          cd ..
+          rm installer/cli.go
+
+      - name: Build autodiscordpatch.exe (Windows)
+        run: |
+          cp files/autovencordpatch_win.go autopatch/autovencordpatch_win.go
+          cd autopatch
+          go mod tidy
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui" -o autodiscordpatch.exe autovencordpatch_win.go
+          rm autovencordpatch_win.go
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            installer/BetterDiscordPatch.exe
+            autopatch/autodiscordpatch.exe
+
+  # ── Windows INSTALLER.exe (PyInstaller must run natively on Windows) ──
+  build-installer-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build INSTALLER.exe (Windows)
+        run: |
+          pip install --quiet pyinstaller requests
+          pyinstaller --onefile --name INSTALLER INSTALLER.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-artifact
+          path: dist/INSTALLER.exe
+
+  # ── Create GitHub Release and attach all artifacts ──
+  release:
+    needs: [build-macos, build-windows, build-installer-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4.1.3
+        with:
+          merge-multiple: true
+          path: release-assets
+
+      - name: List release assets
+        run: ls -lR release-assets/
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release-assets/**
