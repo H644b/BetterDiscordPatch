@@ -137,6 +137,14 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 			return install
 		}
 	}
+
+	// Fallback: try /Applications/ on macOS before giving up
+	if runtime.GOOS == "darwin" {
+		if install := ParseDiscord("/Applications/", branch); install != nil {
+			return install
+		}
+	}
+
 	die("No Discord install was found. Try manually specifying the directory with --dir.")
 	return nil
 }
