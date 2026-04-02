@@ -36,6 +36,8 @@ var macosAppNames = map[string]string{
 // As a convenience, if p is "/Applications" or "/Applications/", the function
 // scans /Applications/ for known Discord app bundles and tries the corresponding
 // ~/Library/Application Support/ data directory for each one found.
+// If p is a .app bundle path (e.g. /Applications/Discord.app), the function
+// maps it to the corresponding data directory automatically.
 func ParseDiscord(p, branch string) *DiscordInstall {
 	if path.Clean(p) == "/Applications" {
 		home, err := os.UserHomeDir()
@@ -52,6 +54,30 @@ func ParseDiscord(p, branch string) *DiscordInstall {
 				continue
 			}
 			dataPath := path.Join(appSupport, dataName)
+			if di := ParseDiscord(dataPath, b); di != nil {
+				return di
+			}
+		}
+		return nil
+	}
+
+	// If the user passed a .app bundle path, map it to the data directory.
+	cleanP := path.Clean(p)
+	if strings.HasSuffix(strings.ToLower(cleanP), ".app") {
+		appBase := path.Base(cleanP)
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil
+		}
+		appSupport := path.Join(home, "Library", "Application Support")
+		for b, appName := range macosAppNames {
+			if !strings.EqualFold(appName, appBase) {
+				continue
+			}
+			if branch != "" && branch != b && branch != "auto" {
+				continue
+			}
+			dataPath := path.Join(appSupport, macosDataNames[b])
 			if di := ParseDiscord(dataPath, b); di != nil {
 				return di
 			}
