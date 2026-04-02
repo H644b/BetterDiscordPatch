@@ -126,7 +126,7 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 	if dir != "" {
 		install := ParseDiscord(dir, branch)
 		if install == nil {
-			die("No Discord install was found at the specified directory.")
+			die("No Discord install was found at the specified directory. Run with --debug for more details.")
 		}
 		return install
 	}
@@ -145,7 +145,7 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 		}
 	}
 
-	die("No Discord install was found. Try manually specifying the directory with --dir.")
+	die("No Discord install was found. Try manually specifying the directory with --dir. Run with --debug for more details.")
 	return nil
 }
 
