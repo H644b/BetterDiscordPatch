@@ -9,7 +9,7 @@ import (
 
 func notify(title, message string) error {
 	notification := toast.Notification{
-		AppID:   "BetterVencordPatch",
+		AppID:   "BetterDiscordPatch",
 		Title:   title,
 		Message: message,
 	}

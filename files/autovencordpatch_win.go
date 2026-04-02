@@ -17,7 +17,7 @@ const (
 )
 
 func runInstaller() {
-	cmd := exec.Command(filepath.Join(os.Getenv("LOCALAPPDATA"), "bettervencordpatch/vencordinstaller.exe"))
+	cmd := exec.Command(filepath.Join(os.Getenv("LOCALAPPDATA"), "betterdiscordpatch/betterdiscordpatch.exe"))
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow:    true,
 		CreationFlags: windows.CREATE_NO_WINDOW,
@@ -29,7 +29,7 @@ func runInstaller() {
 }
 
 func killDiscord() {
-	cmd := exec.Command("C:\\Windows\\System32\\taskkill.exe", "/f", "/im", "bettervencordpatch/vencordinstaller.exe")
+	cmd := exec.Command("C:\\Windows\\System32\\taskkill.exe", "/f", "/im", "betterdiscordpatch/betterdiscordpatch.exe")
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow:    true,
 		CreationFlags: windows.CREATE_NO_WINDOW,

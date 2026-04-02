@@ -34,7 +34,6 @@ func die(msg string) {
 }
 
 var pyBranch = "stable"
-var pyOpenAsar = false
 var pySendSuccessNotifications = true
 
 func main() {
@@ -45,21 +44,16 @@ func main() {
 	flag.Bool("debug", false, "Enable debug info")
 
 	var versionFlag = flag.Bool("version", false, "View the program version")
-	var installFlag = flag.Bool("install", !pyOpenAsar, "Install Vencord")
-	var updateFlag = flag.Bool("repair", false, "Repair Vencord")
-	var uninstallFlag = flag.Bool("uninstall", false, "Uninstall Vencord")
-	var installOpenAsarFlag = flag.Bool("install-openasar", pyOpenAsar, "Install OpenAsar")
-	var uninstallOpenAsarFlag = flag.Bool("uninstall-openasar", false, "Uninstall OpenAsar")
+	var installFlag = flag.Bool("install", true, "Install BetterDiscord")
+	var updateFlag = flag.Bool("repair", false, "Repair BetterDiscord")
+	var uninstallFlag = flag.Bool("uninstall", false, "Uninstall BetterDiscord")
 	var locationFlag = flag.String("location", "", "The location of the Discord install to modify")
 	var branchFlag = flag.String("branch", pyBranch, "The branch of Discord to modify [auto|stable|ptb|canary]")
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Println("BetterVencordPatch v0.2.0")
-		fmt.Println("Using the Vencord Installer CLI (v1.4.0, modified)")
-		fmt.Println("Modified by @introvertednoob to install Vencord without user interaction")
-		fmt.Println("\nCopyright (C) 2023 Vendicated and Vencord contributors")
-		fmt.Println("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.")
+		fmt.Println("BetterDiscordPatch v0.3.0")
+		fmt.Println("Modified to install BetterDiscord without user interaction")
 		return
 	}
 
@@ -77,7 +71,7 @@ func main() {
 		}
 	}
 
-	install, uninstall, update, installOpenAsar, uninstallOpenAsar := *installFlag, *uninstallFlag, *updateFlag, *installOpenAsarFlag, *uninstallOpenAsarFlag
+	install, uninstall, update := *installFlag, *uninstallFlag, *updateFlag
 
 	var err error
 	var errSilent error
@@ -86,25 +80,11 @@ func main() {
 	} else if uninstall {
 		errSilent = PromptDiscord("unpatch", *locationFlag, *branchFlag).unpatch()
 	} else if update {
-		Log.Info("Downloading latest Vencord files...")
+		Log.Info("Downloading latest BetterDiscord files...")
 		err := installLatestBuilds()
 		Log.Info("Done!")
 		if err == nil {
 			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
-		}
-	} else if uninstallOpenAsar {
-		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
-		if discord.IsOpenAsar() {
-			err = discord.UninstallOpenAsar()
-		} else {
-			die("OpenAsar is not installed.")
-		}
-	} else if installOpenAsar {
-		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
-		if !discord.IsOpenAsar() {
-			err = discord.InstallOpenAsar()
-		} else {
-			die("OpenAsar is already installed.")
 		}
 	}
 
@@ -122,9 +102,9 @@ func main() {
 func exitSuccess() {
 	if pySendSuccessNotifications == true {
 		if runtime.GOOS == "darwin" {
-			notify("BetterVencordPatch", "Successfully installed Vencord!")
+			notify("BetterDiscordPatch", "Successfully installed BetterDiscord!")
 		} else {
-			notify("Success", "Successfully installed Vencord!")
+			notify("Success", "Successfully installed BetterDiscord!")
 		}
 	}
 	color.HiGreen("Success!")
@@ -132,16 +112,16 @@ func exitSuccess() {
 }
 
 func exitFailure(reason ...string) {
-	displayed_reason := "Failed to patch Vencord"
+	displayed_reason := "Failed to patch BetterDiscord"
 	if len(reason) > 0 {
-		displayed_reason = "Failed to patch Vencord: " + reason[0]
+		displayed_reason = "Failed to patch BetterDiscord: " + reason[0]
 	}
 	color.HiRed("Failed!")
 
 	if runtime.GOOS == "darwin" {
-		notify("BetterVencordPatch", displayed_reason)
+		notify("BetterDiscordPatch", displayed_reason)
 	} else {
-		notify("An error has occured.", displayed_reason)
+		notify("An error has occurred.", displayed_reason)
 	}
 	os.Exit(1)
 }
@@ -165,5 +145,5 @@ func HandleScuffedInstall() {
 	fmt.Println("Hold on!")
 	fmt.Println("You have a broken Discord install.")
 	fmt.Println("Please reinstall Discord before proceeding!")
-	fmt.Println("Otherwise, Vencord will likely not work.")
+	fmt.Println("Otherwise, BetterDiscord will likely not work.")
 }

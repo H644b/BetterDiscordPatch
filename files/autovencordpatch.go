@@ -11,12 +11,12 @@ import (
 
 const (
 	discordJSON   = "/Applications/Discord.app/Contents/Resources/build_info.json"
-	vencordApp    = "/Applications/VencordInstaller.app"
+	patcherApp    = "/Applications/BetterDiscordPatch.app"
 	checkInterval = 1 * time.Second
 )
 
 func runInstaller() {
-	cmd := exec.Command("open", vencordApp)
+	cmd := exec.Command("open", patcherApp)
 	err := cmd.Start()
 	if err != nil {
 		fmt.Println("["+time.Now().Format("2006-01-02 15:04:05")+"] Failed to run installer:", err)
@@ -44,7 +44,7 @@ func main() {
 		select {
 		case event := <-watcher.Events:
 			if filepath.Clean(event.Name) == discordJSON && event.Op&fsnotify.Create == fsnotify.Create {
-				fmt.Println("[" + time.Now().Format("2006-01-02 15:04:05") + "] Discord is updating, running Vencord installer...")
+				fmt.Println("[" + time.Now().Format("2006-01-02 15:04:05") + "] Discord is updating, running BetterDiscord patcher...")
 				time.Sleep(1.0 * time.Second)
 				runInstaller()
 			}
