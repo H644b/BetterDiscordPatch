@@ -33,7 +33,32 @@ var macosAppNames = map[string]string{
 // ParseDiscord finds the discord_desktop_core module directory within a Discord
 // user-data directory (e.g. ~/Library/Application Support/discord/).
 // Version subdirectories have the format "0.0.298" (multiple dot-separated numbers).
+// As a convenience, if p is "/Applications" or "/Applications/", the function
+// scans /Applications/ for known Discord app bundles and tries the corresponding
+// ~/Library/Application Support/ data directory for each one found.
 func ParseDiscord(p, branch string) *DiscordInstall {
+	if path.Clean(p) == "/Applications" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil
+		}
+		appSupport := path.Join(home, "Library", "Application Support")
+		for b, dataName := range macosDataNames {
+			if branch != "" && branch != b && branch != "auto" {
+				continue
+			}
+			appBundle, ok := macosAppNames[b]
+			if !ok || !ExistsFile(path.Join("/Applications", appBundle)) {
+				continue
+			}
+			dataPath := path.Join(appSupport, dataName)
+			if di := ParseDiscord(dataPath, b); di != nil {
+				return di
+			}
+		}
+		return nil
+	}
+
 	if !ExistsFile(p) {
 		return nil
 	}
