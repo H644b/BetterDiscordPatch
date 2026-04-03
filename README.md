@@ -24,5 +24,5 @@ To build from source, install Python 3.x and Go 1.25.x. The dependencies will be
 Auto-patcher created by [Aaron Wijesinghe](https://github.com/AaronWijesinghe/BetterVencordPatch)
 
 This software uses a modified version of the [BetterDiscord Installer](https://github.com/BetterDiscord/Installer)</br>
-Copyright (c) 2023 Vendicated and Vencord contributors</br>
+Copyright (c) 2017 BetterDiscord and BetterDiscord Installer contributors</br>
 Licensed under the GNU General Public License v3.0</br>
